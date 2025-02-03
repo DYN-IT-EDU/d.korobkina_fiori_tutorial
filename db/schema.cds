@@ -20,7 +20,7 @@ entity Travel : managed {
   Progress : Integer @readonly;
   Description    : String(1024);
   TravelStatus   : Association to TravelStatus @readonly;
-  to_Agency      : Association to TravelAgency;
+  to_Agency      : Association to TravelAgency @assert.target;
   to_Customer    : Association to Passenger;
   to_Booking     : Composition of many Booking on to_Booking.to_Travel = $self;
 };
@@ -77,6 +77,7 @@ entity TravelStatus : CodeList {
   fieldControl: Integer @odata.Type:'Edm.Byte'; // 1: #ReadOnly, 7: #Mandatory
   createDeleteHidden: Boolean;
   insertDeleteRestriction: Boolean; // = NOT createDeleteHidden
+  cancelRestrictions: Boolean; // is true for cancelled travels
 }
 
 annotate Travel with @(
