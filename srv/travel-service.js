@@ -71,17 +71,29 @@ init() {
   }})
 
 
-  /**
+/**
    * Update the Travel's TotalPrice when a Supplement's Price is modified.
    */
-  this.after ('UPDATE', 'BookingSupplement.drafts', async (_,req) => { if ('Price' in req.data) {
-    // We need to fetch the Travel's UUID for the given Supplement target
-    const { booking } = await SELECT.one `to_Booking_BookingUUID as booking`
-      .from (BookingSupplement.drafts).where({BookSupplUUID:req.data.BookSupplUUID})
-    const { travel } = await SELECT.one `to_Travel_TravelUUID as travel` .from (Booking.drafts)
-      .where `BookingUUID = ${booking} `
-    return this._update_totals4 (travel)
-  }})
+  this.after('UPDATE', 'BookingSupplement.drafts', async (_, req) => {
+    if ('Price' in req.data) {
+      // We need to fetch the Travel's UUID for the given Supplement target
+      const { booking } = await SELECT.one`to_Booking_BookingUUID as booking`
+        .from(BookingSupplement.drafts).where({ BookSupplUUID: req.data.BookSupplUUID })
+      const { travel } = await SELECT.one`to_Travel_TravelUUID as travel`.from(Booking.drafts)
+        .where`BookingUUID = ${booking} `
+      await this._update_totals_supplement(booking)
+      return this._update_totals4(travel)
+    }
+  })
+
+ /**
+   * Update the Booking's TotalSupplPrice
+   */
+  this._update_totals_supplement = async function (booking) {
+    const { totals } = await SELECT.one`coalesce (sum (Price),0) as totals`.from(BookingSupplement.drafts).where
+      `to_Booking_BookingUUID = ${booking}`
+    return UPDATE(Booking.drafts, booking).with({ TotalSupplPrice: totals })
+  }
 
   /**
    * Update the Travel's TotalPrice when a Booking Supplement is deleted.
@@ -137,10 +149,46 @@ init() {
     if (BeginDate > EndDate) req.error (400, `Begin Date ${BeginDate} must be before End Date ${EndDate}.`, 'in/BeginDate')
   })
 
+  /**
+   * Calculate the progress of the travel booking.
+   */
+
+  // Travel is new (0 bookings) = 10%
+  // Travel contains at least one booking = 50%
+  // Travel contains at least two bookings = 65%
+  // Supplement target reached + 5 % per booking, max 90%
+  // Travel is accepted = 100% -> see acceptTravel
+  // Travel is rejected = 0% -> see rejectTravel
+  this.before ('SAVE', 'Travel', async req => {
+    if (!req.event === 'CREATE' && !req.event === 'UPDATE') return //only calculate if create or update
+    let score = 10
+    const { TravelUUID } = req.data
+    const res = await SELECT .from(Booking.drafts) .where `to_Travel_TravelUUID = ${TravelUUID}`
+    if (res.length >= 1) score += 40
+    if (res.length >= 2) score += 15
+    res.forEach(element => {
+      if (element.TotalSupplPrice > 70) score += 5
+    });
+    if (score > 90) score = 90;
+    req.data.Progress = score
+  })
 
   //
   // Action Implementations...
   //
+  
+  this.on ('acceptTravel', async req => {
+    await UPDATE (req.subject) .with ({TravelStatus_code:'A'})
+    return this._update_progress(req.subject, 100)
+  })
+  this.on ('rejectTravel', async req => {
+    await UPDATE (req.subject) .with ({TravelStatus_code:'X'})
+    return this._update_progress(req.subject, 0)
+  })
+
+  this._update_progress = async function (travel, progress){
+    return await UPDATE (travel) . with({Progress : progress})
+  }
 
   this.on ('acceptTravel', req => UPDATE (req.subject) .with ({TravelStatus_code:'A'}))
   this.on ('rejectTravel', req => UPDATE (req.subject) .with ({TravelStatus_code:'X'}))
