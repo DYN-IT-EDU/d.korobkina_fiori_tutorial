@@ -1,6 +1,8 @@
 using TravelService from '../../srv/travel-service';
 using from '../../db/schema';
 using from '../../db/master-data';
+using from './value-helps';
+
 
 
 
@@ -110,7 +112,14 @@ annotate TravelService.Travel with @(
                     ID    : 'TravelData',
                     Target: '@UI.FieldGroup#TravelData',
                     Label : '{i18n>GeneralInformation}'
-                }]
+                },
+                    {
+                        $Type : 'UI.ReferenceFacet',
+                        Label : '{i18n>TravelAdministrativeData}',
+                        ID : 'i18nTravelAdministrativeData',
+                        Target : '@UI.FieldGroup#i18nTravelAdministrativeData',
+                        ![@UI.PartOfPreview] : false,
+                    },]
             },
             { // booking list
                 $Type : 'UI.ReferenceFacet',
@@ -122,7 +131,15 @@ annotate TravelService.Travel with @(
             {Value: TravelID},
             {Value: to_Agency_AgencyID},
             {Value: to_Customer_CustomerID},
-            {Value: Description}
+            {Value: Description},
+            {
+                $Type : 'UI.DataField',
+                Value : EndDate,
+            },
+            {
+                $Type : 'UI.DataField',
+                Value : BeginDate,
+            },
         ]},
         FieldGroup #DateData  : {Data: [
             {
@@ -285,6 +302,23 @@ annotate TravelService.Travel with @(
         Title : '{i18n>ProgressOfTravel}',
         TargetValue : 100,
         Visualization : #Progress,
+    },
+    UI.FieldGroup #i18nTravelAdministrativeData : {
+        $Type : 'UI.FieldGroupType',
+        Data : [
+            {
+                $Type : 'UI.DataField',
+                Value : createdAt,
+            },
+            {
+                $Type : 'UI.DataField',
+                Value : createdBy,
+            },
+            {
+                $Type : 'UI.DataField',
+                Value : LastChangedAt,
+            },
+        ],
     },
 );
 
@@ -551,3 +585,64 @@ annotate TravelService.Travel with @UI: {
         }, ],
     }
 };
+annotate TravelService.Travel with {
+    Description @UI.MultiLineText : true
+    @UI.Placeholder  : '{i18n>DescrPlcehlder}'
+};
+
+annotate TravelService.Booking with {
+    ConnectionID @(Common.ValueList : {
+            CollectionPath : 'Flight',
+            Label : '',
+            Parameters : [
+                {
+                    $Type : 'Common.ValueListParameterInOut',
+                    ValueListProperty : 'AirlineID',
+                    LocalDataProperty : to_Carrier_AirlineID,
+                },
+                {
+                    $Type : 'Common.ValueListParameterInOut',
+                    LocalDataProperty : ConnectionID,
+                    ValueListProperty : 'ConnectionID',
+                },
+                {
+                    $Type : 'Common.ValueListParameterInOut',
+                    ValueListProperty : 'FlightDate',
+                    LocalDataProperty : FlightDate,
+                },
+                {
+                    $Type : 'Common.ValueListParameterInOut',
+                    ValueListProperty : 'Price',
+                    LocalDataProperty : FlightPrice,
+                },
+                {
+                    $Type : 'Common.ValueListParameterInOut',
+                    ValueListProperty : 'CurrencyCode_code',
+                    LocalDataProperty : CurrencyCode_code,
+                },
+                {
+                    $Type : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty : 'to_Airline/Name',
+                },
+                {
+                    $Type : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty : 'PlaneType',
+                },
+                {
+                    $Type : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty : 'MaximumSeats',
+                },
+                {
+                    $Type : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty : 'OccupiedSeats',
+                },
+            ],
+            PresentationVariantQualifier : 'SortOrderPV',
+        },
+        Common.ValueListWithFixedValues : true
+)};
+
+annotate TravelService.Travel @(Common.SideEffects #ReactonItemCreationOrDeletion: {
+    SourceEntities  : [to_Booking],
+    TargetProperties: ['TotalPrice']
+});
