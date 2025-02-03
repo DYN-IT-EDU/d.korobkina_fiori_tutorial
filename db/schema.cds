@@ -9,6 +9,13 @@ using {
 
 namespace sap.fe.cap.travel;
 
+type BookingData: {
+  TotalBookingsCount: Integer;
+  NewBookingsCount: Integer;
+  AcceptedBookingsCount: Integer;
+  CancelledBookingsCount: Integer;
+}
+
 entity Travel : managed {
   key TravelUUID : UUID;
   TravelID       : Integer @readonly default 0;
@@ -48,6 +55,7 @@ entity BookingSupplement : managed {
   key BookSupplUUID   : UUID;
   BookingSupplementID : Integer @Core.Computed;
   Price               : Decimal(16, 3);
+  DeliveryPreference  : Association to MealOptionDeliveryPreference;
   CurrencyCode        : Currency;
   to_Booking          : Association to Booking;
   to_Travel           : Association to Travel;
@@ -107,3 +115,11 @@ entity SupplementScope {
   DeviationRangeLowValue : Integer @Common.Label: 'Deviation Range Threshold';
   ToleranceRangeLowValue : Integer @Common.Label: 'Tolerance Range Threshold'; 
 }
+
+entity MealOptionDeliveryPreference: CodeList {
+  key code : String enum {
+    SoonAfterTakeoff = 'S';
+    Midflight = 'M';
+    Late = 'L';
+  } default 'M'
+};

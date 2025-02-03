@@ -152,6 +152,33 @@
                     "route": "BookingObjectPage"
                   }
                 }
+              },
+              "content": {
+                "header": {
+                  "facets": {
+                      "CustomHeaderFacetContentBased1": {
+                          "template": "sap.fe.cap.customer.ext.fragment.BookingStatus",
+                          "title": "{i18n>bookingStatus}",
+                          "visible": "true",
+                          "position": {
+                              "placement": "After",
+                              "anchor": "ContactDetails"
+                          }
+                      }
+                  }
+              },
+                "body": {
+                  "sections": {
+                    "Bookings": {
+                      "template": "sap.fe.cap.customer.ext.fragment.Bookings",
+                      "position": {
+                        "placement": "After",
+                        "anchor": "GeneratedFacet1"
+                      },
+                      "title": "{i18n>ownBookings}"
+                    }
+                  }
+                }
               }
             }
           }
@@ -165,6 +192,15 @@
               "editableHeaderContent": false,
               "contextPath": "/Passenger/to_Booking"
             }
+          }
+        }
+      }
+    },
+    "extends": {
+      "extensions": {
+        "sap.ui.controllerExtensions": {
+          "sap.fe.templates.ObjectPage.ObjectPageController#sap.fe.cap.customer::PassengerObjectPage": {
+            "controllerName": "sap.fe.cap.customer.ext.controller.PassengerOPExtend"
           }
         }
       }
